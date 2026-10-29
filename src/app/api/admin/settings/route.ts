@@ -15,8 +15,8 @@ export async function POST(req: Request) {
   for (const [k, v] of Object.entries(body)) {
     if (ALLOWED.has(k)) patch[k] = String(v ?? "").slice(0, 4000);
   }
-  saveSettings(patch);
-  logActivity({ actorName: session.name || session.email, actorRole: "admin", kind: "settings", summary: `Updated portal settings` });
+  await saveSettings(patch);
+  await logActivity({ actorName: session.name || session.email, actorRole: "admin", kind: "settings", summary: `Updated portal settings` });
 
   return NextResponse.json({ ok: true });
 }

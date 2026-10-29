@@ -9,6 +9,6 @@ export default async function SignupPage() {
   const session = await getSession();
   if (session) redirect(session.role === "admin" ? "/admin" : "/");
 
-  const s = getSettings();
+  const s = await getSettings();
   return <SignupPanel portalName={s.portal_name} supportEmail={s.support_email} />;
 }

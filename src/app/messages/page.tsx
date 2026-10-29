@@ -12,11 +12,11 @@ export default async function MessagesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = getSettings();
-  const thread = messages(session.userId);
+  const s = await getSettings();
+  const thread = await messages(session.userId);
 
   return (
-    <PortalShell name={session.name || session.email} role={session.role} portalName={s.portal_name} completedSteps={completedSteps(session.userId)} unread={0}>
+    <PortalShell name={session.name || session.email} role={session.role} portalName={s.portal_name} completedSteps={await completedSteps(session.userId)} unread={0}>
       <div className="max-w-3xl mx-auto fade-up">
         <p className="eyebrow mb-3">Messages</p>
         <h1 className="text-[2rem] lg:text-[2.4rem] font-bold mb-2 title-grad">Your thread</h1>

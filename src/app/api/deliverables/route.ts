@@ -11,7 +11,7 @@ export async function PATCH(req: Request) {
   if (session.role !== "admin") return NextResponse.json({ error: "Only the Band9Prep team can review videos." }, { status: 403 });
 
   const { id, action } = await req.json().catch(() => ({}));
-  const row = get<Deliverable>("SELECT * FROM deliverables WHERE id = ?", [Number(id)]);
+  const row = await get<Deliverable>("SELECT * FROM deliverables WHERE id = ?", [Number(id)]);
   if (!row) return NextResponse.json({ error: "Deliverable not found." }, { status: 404 });
   if (session.role !== "admin" && row.user_id !== session.userId) {
     return NextResponse.json({ error: "Not yours." }, { status: 403 });
@@ -21,14 +21,14 @@ export async function PATCH(req: Request) {
   }
 
   if (action === "approve") {
-    run("UPDATE deliverables SET status = 'approved', approved_at = datetime('now') WHERE id = ?", [row.id]);
+    await run("UPDATE deliverables SET status = 'approved', approved_at = datetime('now') WHERE id = ?", [row.id]);
   } else if (action === "changes") {
-    run("UPDATE deliverables SET status = 'in_progress', delivered_at = NULL WHERE id = ?", [row.id]);
+    await run("UPDATE deliverables SET status = 'in_progress', delivered_at = NULL WHERE id = ?", [row.id]);
   } else {
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   }
 
-  logActivity({
+  await logActivity({
     userId: row.user_id,
     actorName: session.name || session.email,
     actorRole: session.role,

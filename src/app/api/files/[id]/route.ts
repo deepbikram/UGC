@@ -10,7 +10,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!session) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const { id } = await params;
-  const row = get<FileRow>("SELECT * FROM files WHERE id = ?", [Number(id)]);
+  const row = await get<FileRow>("SELECT * FROM files WHERE id = ?", [Number(id)]);
   if (!row) return NextResponse.json({ error: "File not found." }, { status: 404 });
   if (session.role !== "admin" && row.user_id !== session.userId) {
     return NextResponse.json({ error: "Not your file." }, { status: 403 });

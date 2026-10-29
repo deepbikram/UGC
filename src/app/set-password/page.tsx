@@ -9,6 +9,6 @@ export default async function SetPasswordPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = getSettings();
+  const s = await getSettings();
   return <SetPasswordForm portalName={s.portal_name} name={session.name} isAdmin={session.role === "admin"} />;
 }

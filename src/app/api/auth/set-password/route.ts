@@ -13,8 +13,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Use at least 8 characters." }, { status: 400 });
   }
 
-  run("UPDATE users SET password_hash = ?, must_reset = 0 WHERE id = ?", [bcrypt.hashSync(String(password), 10), session.userId]);
-  logActivity({
+  await run("UPDATE users SET password_hash = ?, must_reset = false WHERE id = ?", [bcrypt.hashSync(String(password), 10), session.userId]);
+  await logActivity({
     userId: session.role === "client" ? session.userId : null,
     actorName: session.name || session.email,
     actorRole: session.role,

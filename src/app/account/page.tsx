@@ -13,8 +13,8 @@ export default async function AccountPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = getSettings();
-  const user = getUser(session.userId);
+  const s = await getSettings();
+  const user = await getUser(session.userId);
   const isClient = session.role === "client";
 
   return (
@@ -23,8 +23,8 @@ export default async function AccountPage() {
       role={session.role}
       portalName={s.portal_name}
       view={isClient ? "client" : "admin"}
-      completedSteps={completedSteps(session.userId)}
-      unread={isClient ? unreadFor(session.userId, "client") : 0}
+      completedSteps={await completedSteps(session.userId)}
+      unread={isClient ? await unreadFor(session.userId, "client") : 0}
     >
       <div className="max-w-xl mx-auto fade-up">
         <p className="eyebrow mb-3">Account</p>

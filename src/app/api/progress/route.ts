@@ -14,11 +14,11 @@ export async function POST(req: Request) {
   // Admins can tick a step on a client's behalf; clients only ever touch their own.
   const targetId = session.role === "admin" && userId ? Number(userId) : session.userId;
 
-  if (done) completeStep(targetId, String(stepId));
-  else uncompleteStep(targetId, String(stepId));
+  if (done) await completeStep(targetId, String(stepId));
+  else await uncompleteStep(targetId, String(stepId));
 
   const step = ALL_STEPS.find((s) => s.id === stepId);
-  logActivity({
+  await logActivity({
     userId: targetId,
     actorName: session.name || session.email,
     actorRole: session.role,

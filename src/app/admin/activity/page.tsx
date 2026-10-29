@@ -13,10 +13,10 @@ export default async function AdminActivity() {
   const session = await getSession();
   if (!session || session.role !== "admin") redirect("/");
 
-  const s = getSettings();
-  const unread = get<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE author_role = 'client' AND read_by_admin = 0")?.n ?? 0;
+  const s = await getSettings();
+  const unread = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE author_role = 'client' AND read_by_admin = false"))?.n ?? 0;
 
-  const rows = all<{ id: number; user_id: number | null; actor_name: string; actor_role: string; kind: string; summary: string; created_at: string; client: string | null }>(
+  const rows = await all<{ id: number; user_id: number | null; actor_name: string; actor_role: string; kind: string; summary: string; created_at: string; client: string | null }>(
     `SELECT a.*, u.name AS client FROM activity a LEFT JOIN users u ON u.id = a.user_id ORDER BY a.created_at DESC, a.id DESC LIMIT 200`
   );
 

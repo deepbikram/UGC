@@ -10,7 +10,7 @@ export default async function LoginPage() {
   const session = await getSession();
   if (session) redirect(session.role === "admin" ? "/admin" : "/");
 
-  const s = getSettings();
+  const s = await getSettings();
   return (
     <Suspense>
       <LoginPanel portalName={s.portal_name} tagline={s.portal_tagline} supportEmail={s.support_email} />

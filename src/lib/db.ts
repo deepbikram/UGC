@@ -1,21 +1,34 @@
-// Portico stores everything in one SQLite file (data/portico.db) and one
-// uploads directory (data/uploads). No external service, no API key, no
-// migration tool: the schema in schema.mjs is created on first import and is
-// the single source of truth.
-import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
-import { SCHEMA } from "./schema.mjs";
+// Portico talks to Supabase Postgres directly over the pooler using the
+// `portico_app` role. Queries are still plain SQL; `?` placeholders are
+// rewritten to `$1..$n` so call sites stay driver-agnostic.
+import { Pool, types } from "pg";
 
-export const DATA_DIR = path.join(process.cwd(), "data");
-export const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
+types.setTypeParser(1184, (v) => (v === null ? null : new Date(v).toISOString()));
+types.setTypeParser(1114, (v) => (v === null ? null : new Date(`${v}Z`).toISOString()));
+types.setTypeParser(1082, (v) => v);
 
-const db = new Database(path.join(DATA_DIR, "portico.db"));
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+const globalForDb = globalThis as unknown as { porticoPool?: Pool };
 
-db.exec(SCHEMA);
+function pool(): Pool {
+  if (!globalForDb.porticoPool) {
+    globalForDb.porticoPool = new Pool({
+      connectionString: process.env.SUPABASE_DB_URL!,
+      ssl: { rejectUnauthorized: false },
+      max: 5,
+    });
+  }
+  return globalForDb.porticoPool;
+}
+
+function toPg(sql: string) {
+  let i = 0;
+  return sql
+    .replace(/\?/g, () => `$${++i}`)
+    .replace(/datetime\('now'\)/g, "now()");
+}
+
+export type RunResult = { rowCount: number; rows: Record<string, unknown>[] };
 
 export type Role = "admin" | "client";
 
@@ -26,8 +39,8 @@ export type User = {
   company: string;
   password_hash: string;
   role: Role;
-  must_reset: number;
-  seen_intro: number;
+  must_reset: boolean;
+  seen_intro: boolean;
   status: "active" | "archived";
   project_name: string;
   starts_on: string;
@@ -74,8 +87,8 @@ export type Message = {
   author_name: string;
   body: string;
   created_at: string;
-  read_by_client: number;
-  read_by_admin: number;
+  read_by_client: boolean;
+  read_by_admin: boolean;
 };
 
 export type Note = { id: number; user_id: number; author_name: string; body: string; created_at: string };
@@ -91,35 +104,38 @@ export type ActivityRow = {
 };
 
 /** Small typed wrappers so callers never touch the driver directly. */
-export function get<T>(sql: string, params: unknown[] = []): T | undefined {
-  return db.prepare(sql).get(...params) as T | undefined;
+export async function get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
+  const res = await pool().query(toPg(sql), params);
+  return res.rows[0] as T | undefined;
 }
 
-export function all<T>(sql: string, params: unknown[] = []): T[] {
-  return db.prepare(sql).all(...params) as T[];
+export async function all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+  const res = await pool().query(toPg(sql), params);
+  return res.rows as T[];
 }
 
-export function run(sql: string, params: unknown[] = []) {
-  return db.prepare(sql).run(...params);
+export async function run(sql: string, params: unknown[] = []): Promise<RunResult> {
+  const res = await pool().query(toPg(sql), params);
+  return { rowCount: res.rowCount ?? 0, rows: res.rows as Record<string, unknown>[] };
 }
 
-export function getSetting(key: string): string {
-  const row = get<{ value: string }>("SELECT value FROM settings WHERE key = ?", [key]);
+export async function getSetting(key: string): Promise<string> {
+  const row = await get<{ value: string }>("SELECT value FROM settings WHERE key = ?", [key]);
   return row?.value ?? "";
 }
 
-export function setSetting(key: string, value: string) {
-  run("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [key, value]);
+export async function setSetting(key: string, value: string) {
+  await run("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [key, value]);
 }
 
-export function logActivity(entry: {
+export async function logActivity(entry: {
   userId?: number | null;
   actorName: string;
   actorRole: Role;
   kind: string;
   summary: string;
 }) {
-  run("INSERT INTO activity (user_id, actor_name, actor_role, kind, summary) VALUES (?, ?, ?, ?, ?)", [
+  await run("INSERT INTO activity (user_id, actor_name, actor_role, kind, summary) VALUES (?, ?, ?, ?, ?)", [
     entry.userId ?? null,
     entry.actorName,
     entry.actorRole,
@@ -127,5 +143,3 @@ export function logActivity(entry: {
     entry.summary,
   ]);
 }
-
-export default db;

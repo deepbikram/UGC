@@ -14,17 +14,17 @@ export default async function Overview() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const user = getUser(session.userId);
-  if (session.role === "client" && user && user.seen_intro === 0) redirect("/intro");
+  const user = await getUser(session.userId);
+  if (session.role === "client" && user && user.seen_intro === false) redirect("/intro");
 
-  const s = getSettings();
-  const done = completedSteps(session.userId);
+  const s = await getSettings();
+  const done = await completedSteps(session.userId);
   const completed = new Set(done);
   const stats = journeyStats(completed, session.role === "admin");
-  const board = deliverables(session.userId);
-  const thread = messages(session.userId);
-  const unread = unreadFor(session.userId, "client");
-  const fileCount = files(session.userId).length;
+  const board = await deliverables(session.userId);
+  const thread = await messages(session.userId);
+  const unread = await unreadFor(session.userId, "client");
+  const fileCount = (await files(session.userId)).length;
 
   const firstName = (session.name || "").split(" ")[0];
   const inReview = board.filter((d) => d.status === "review");

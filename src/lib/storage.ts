@@ -4,7 +4,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { UPLOAD_DIR } from "./db";
+const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
 
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 

@@ -8,7 +8,7 @@ const sans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const mono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const s = getSettings();
+  const s = await getSettings();
   const name = s.portal_name || BRAND.name;
   return {
     title: { default: `${name} · Creator Portal`, template: `%s · ${name}` },
@@ -25,7 +25,7 @@ function rgbTriplet(hex: string): string {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const s = getSettings();
+  const s = await getSettings();
   const accent = safeColor(s.accent_color || "", BRAND.colors.accent);
   const rgb = rgbTriplet(accent);
 

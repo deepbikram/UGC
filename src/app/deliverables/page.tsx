@@ -12,8 +12,8 @@ export default async function DeliverablesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = getSettings();
-  const items = deliverables(session.userId).map((d) => ({
+  const s = await getSettings();
+  const items = (await deliverables(session.userId)).map((d) => ({
     id: d.id,
     title: d.title,
     summary: d.summary,
@@ -27,8 +27,8 @@ export default async function DeliverablesPage() {
       name={session.name || session.email}
       role={session.role}
       portalName={s.portal_name}
-      completedSteps={completedSteps(session.userId)}
-      unread={unreadFor(session.userId, "client")}
+      completedSteps={await completedSteps(session.userId)}
+      unread={await unreadFor(session.userId, "client")}
     >
       <div className="max-w-4xl mx-auto fade-up">
         <p className="eyebrow mb-3">My videos</p>

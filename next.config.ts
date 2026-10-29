@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: ["pg"],
   // The dev badge lands on top of the sidebar account menu.
   devIndicators: false,
 };

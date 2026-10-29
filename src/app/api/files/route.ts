@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const ownerId = session.role === "admin" && forUser ? Number(forUser) : session.userId;
   const { storedName, size } = await saveUpload(ownerId, file);
 
-  run(
+  await run(
     `INSERT INTO files (user_id, uploaded_by, uploader_role, label, category, file_name, stored_name, mime, size)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [ownerId, session.userId, session.role, label, category, safeName(file.name), storedName, file.type || "application/octet-stream", size]
@@ -31,9 +31,9 @@ export async function POST(req: Request) {
 
   // An upload step counts as done the moment the first file lands in its bucket.
   const step = ALL_STEPS.find((s) => s.upload?.category === category);
-  if (step) completeStep(ownerId, step.id);
+  if (step) await completeStep(ownerId, step.id);
 
-  logActivity({
+  await logActivity({
     userId: ownerId,
     actorName: session.name || session.email,
     actorRole: session.role,
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     summary: `Uploaded ${safeName(file.name)}`,
   });
 
-  return NextResponse.json({ ok: true, files: all<FileRow>("SELECT * FROM files WHERE user_id = ? AND category = ? ORDER BY created_at DESC", [ownerId, category]) });
+  return NextResponse.json({ ok: true, files: await all<FileRow>("SELECT * FROM files WHERE user_id = ? AND category = ? ORDER BY created_at DESC", [ownerId, category]) });
 }
 
 export async function DELETE(req: Request) {
@@ -49,15 +49,15 @@ export async function DELETE(req: Request) {
   if (!session) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const { id } = await req.json().catch(() => ({}));
-  const row = get<FileRow>("SELECT * FROM files WHERE id = ?", [Number(id)]);
+  const row = await get<FileRow>("SELECT * FROM files WHERE id = ?", [Number(id)]);
   if (!row) return NextResponse.json({ error: "File not found." }, { status: 404 });
   if (session.role !== "admin" && row.user_id !== session.userId) {
     return NextResponse.json({ error: "Not your file." }, { status: 403 });
   }
 
   deleteUpload(row.user_id, row.stored_name);
-  run("DELETE FROM files WHERE id = ?", [row.id]);
-  logActivity({ userId: row.user_id, actorName: session.name || session.email, actorRole: session.role, kind: "file_delete", summary: `Deleted ${row.file_name}` });
+  await run("DELETE FROM files WHERE id = ?", [row.id]);
+  await logActivity({ userId: row.user_id, actorName: session.name || session.email, actorRole: session.role, kind: "file_delete", summary: `Deleted ${row.file_name}` });
 
   return NextResponse.json({ ok: true });
 }

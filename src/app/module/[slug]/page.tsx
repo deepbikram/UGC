@@ -25,12 +25,12 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
   if (!mod) notFound();
 
   const index = JOURNEY.findIndex((m) => m.slug === slug);
-  const done = completedSteps(session.userId);
+  const done = await completedSteps(session.userId);
   const completed = new Set(done);
   if (session.role !== "admin" && !isModuleUnlocked(index, completed)) redirect("/");
 
-  const s = getSettings();
-  const user = getUser(session.userId);
+  const s = await getSettings();
+  const user = await getUser(session.userId);
 
   // Everything each step needs, resolved on the server so the client component
   // stays a pure renderer.
@@ -43,17 +43,17 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
         : { kind: "doc", title: step.title, minutes: 1, html: "" };
     } else if (step.type === "form" && step.form) {
       const form = FORMS[step.form];
-      const saved = formResponse(session.userId, step.form);
+      const saved = await formResponse(session.userId, step.form);
       stepData[step.id] = { kind: "form", form, data: saved.data as Record<string, string | string[]>, status: saved.status, updatedAt: saved.updatedAt };
     } else if (step.type === "upload" && step.upload) {
       stepData[step.id] = {
         kind: "upload",
         category: step.upload.category,
         asks: step.upload.asks,
-        files: files(session.userId, step.upload.category).map((f) => ({ id: f.id, name: f.file_name, size: f.size, createdAt: f.created_at, mime: f.mime })),
+        files: (await files(session.userId, step.upload.category)).map((f) => ({ id: f.id, name: f.file_name, size: f.size, createdAt: f.created_at, mime: f.mime })),
       };
     } else if (step.type === "checklist" && step.checklist) {
-      const saved = formResponse(session.userId, step.id);
+      const saved = await formResponse(session.userId, step.id);
       stepData[step.id] = { kind: "checklist", items: step.checklist, checked: (saved.data.items as boolean[]) ?? [] };
     } else if (step.type === "action" && step.action) {
       const url = step.action.url || (step.action.settingKey ? s[step.action.settingKey] ?? "" : "");
@@ -61,14 +61,14 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
     } else if (step.type === "board") {
       stepData[step.id] = {
         kind: "board",
-        items: deliverables(session.userId).map((d) => ({ id: d.id, title: d.title, summary: d.summary, status: d.status, url: d.url, dueOn: d.due_on })),
+        items: (await deliverables(session.userId)).map((d) => ({ id: d.id, title: d.title, summary: d.summary, status: d.status, url: d.url, dueOn: d.due_on })),
       };
     } else if (step.type === "handoff") {
       stepData[step.id] = {
         kind: "handoff",
         intro: await marked.parse(DOCS.handoff.body),
-        deliverables: deliverables(session.userId).map((d) => ({ id: d.id, title: d.title, status: d.status, url: d.url })),
-        files: files(session.userId).map((f) => ({ id: f.id, name: f.file_name, size: f.size, category: f.category })),
+        deliverables: (await deliverables(session.userId)).map((d) => ({ id: d.id, title: d.title, status: d.status, url: d.url })),
+        files: (await files(session.userId)).map((f) => ({ id: f.id, name: f.file_name, size: f.size, category: f.category })),
         supportEmail: s.support_email,
         projectName: user?.project_name || user?.company || "",
         clientName: user?.name || "",
@@ -86,7 +86,7 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
       role={session.role}
       portalName={s.portal_name}
       completedSteps={done}
-      unread={unreadFor(session.userId, "client")}
+      unread={await unreadFor(session.userId, "client")}
     >
       <ModuleView
         module={mod}

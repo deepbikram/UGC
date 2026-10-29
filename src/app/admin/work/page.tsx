@@ -21,14 +21,14 @@ export default async function AdminWork() {
   const session = await getSession();
   if (!session || session.role !== "admin") redirect("/");
 
-  const s = getSettings();
-  const unread = get<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE author_role = 'client' AND read_by_admin = 0")?.n ?? 0;
+  const s = await getSettings();
+  const unread = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE author_role = 'client' AND read_by_admin = false"))?.n ?? 0;
 
-  const rows = all<{ id: number; title: string; status: string; due_on: string; url: string; client_id: number; client: string; company: string }>(
+  const rows = await all<{ id: number; title: string; status: string; due_on: string; url: string; client_id: number; client: string; company: string }>(
     `SELECT d.id, d.title, d.status, d.due_on, d.url, u.id AS client_id, u.name AS client, u.company
      FROM deliverables d JOIN users u ON u.id = d.user_id
      WHERE u.status = 'active'
-     ORDER BY d.due_on = '' , d.due_on, d.id`
+     ORDER BY d.due_on NULLS LAST, d.id`
   );
 
   return (

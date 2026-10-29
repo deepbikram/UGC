@@ -13,8 +13,8 @@ export default async function AdminSettingsPage() {
   const session = await getSession();
   if (!session || session.role !== "admin") redirect("/");
 
-  const s = getSettings();
-  const unread = get<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE author_role = 'client' AND read_by_admin = 0")?.n ?? 0;
+  const s = await getSettings();
+  const unread = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE author_role = 'client' AND read_by_admin = false"))?.n ?? 0;
 
   return (
     <PortalShell name={session.name || session.email} role="admin" view="admin" portalName={s.portal_name} unread={unread}>

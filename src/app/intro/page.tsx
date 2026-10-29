@@ -11,10 +11,10 @@ export default async function IntroPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const user = getUser(session.userId);
-  if (!user || user.seen_intro === 1) redirect("/");
+  const user = await getUser(session.userId);
+  if (!user || user.seen_intro) redirect("/");
 
-  const s = getSettings();
+  const s = await getSettings();
   return (
     <IntroScreen
       portalName={s.portal_name}

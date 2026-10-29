@@ -12,8 +12,8 @@ export default async function FilesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = getSettings();
-  const rows = files(session.userId).map((f) => ({
+  const s = await getSettings();
+  const rows = (await files(session.userId)).map((f) => ({
     id: f.id,
     name: f.file_name,
     size: f.size,
@@ -28,8 +28,8 @@ export default async function FilesPage() {
       name={session.name || session.email}
       role={session.role}
       portalName={s.portal_name}
-      completedSteps={completedSteps(session.userId)}
-      unread={unreadFor(session.userId, "client")}
+      completedSteps={await completedSteps(session.userId)}
+      unread={await unreadFor(session.userId, "client")}
     >
       <FilesView initial={rows} portalName={s.portal_name} />
     </PortalShell>
