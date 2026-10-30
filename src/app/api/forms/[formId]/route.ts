@@ -11,9 +11,33 @@ export async function POST(req: Request, { params }: { params: Promise<{ formId:
 
   const { formId } = await params;
   const form = getForm(formId);
-  if (!form) return NextResponse.json({ error: "Unknown form." }, { status: 404 });
+  const checklistStep = !form ? ALL_STEPS.find((s) => s.id === formId && s.type === "checklist") : undefined;
+  if (!form && !checklistStep) return NextResponse.json({ error: "Unknown form." }, { status: 404 });
 
   const { data, submit = false } = await req.json().catch(() => ({}));
+
+  // Checklist steps (e.g. profile-acknowledge) persist { items: boolean[] }.
+  if (checklistStep) {
+    const raw = (data ?? {}).items;
+    const items = Array.isArray(raw) ? raw.map((v) => v === true) : [];
+    const expected = checklistStep.checklist?.length ?? items.length;
+    if (submit && !(items.length === expected && items.every(Boolean))) {
+      return NextResponse.json({ error: "Tick every box to continue." }, { status: 400 });
+    }
+    await saveFormResponse(session.userId, formId, { items }, Boolean(submit));
+    if (submit) {
+      await completeStep(session.userId, checklistStep.id);
+      await logActivity({
+        userId: session.userId,
+        actorName: session.name || session.email,
+        actorRole: session.role,
+        kind: "form_submit",
+        summary: `Acknowledged “${checklistStep.title}”`,
+      });
+    }
+    return NextResponse.json({ ok: true, submitted: Boolean(submit) });
+  }
+  if (!form) return NextResponse.json({ error: "Unknown form." }, { status: 404 });
   const clean: Record<string, unknown> = {};
   for (const field of form.fields) {
     const v = (data ?? {})[field.id];

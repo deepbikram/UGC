@@ -32,8 +32,7 @@ TikTok, Instagram Reels, and YouTube Shorts. No other platform counts toward pay
 
 ## Money, plainly
 
-- The advertised range is an **indicative NPR 50–60 per 1,000 eligible views**. It is not a guarantee.
-- Your **exact rate is confirmed by your campaign representative** and shown in your profile once set.
+- The rate is a **fixed NPR 50–60 per 1,000 eligible views**.
 - Payouts are calculated as **eligible views / 1,000 × your confirmed rate**.
 - Review and payment happen **monthly, after review**. Only admin-reviewed eligible views count.
 
@@ -46,7 +45,7 @@ TikTok, Instagram Reels, and YouTube Shorts. No other platform counts toward pay
 
 ## Questions
 
-Use **Messages** in the sidebar, or email us at {{email}}. {{portal}} is the one place for your profile, submissions, and payouts — if it is not in the portal, it did not happen.
+Use **Messages** in the sidebar, or contact us on [WhatsApp](https://wa.link/zthuqj). {{portal}} is the one place for your profile, submissions, and payouts — if it is not in the portal, it did not happen.
     `.trim(),
   },
   "working-agreement": {
@@ -80,6 +79,10 @@ This is the short version of the rules. Follow it and your videos stay eligible.
 - **Monthly, after review** — via eSewa, Khalti, or bank transfer.
 - Keep your payout details up to date. If they change after a payout is prepared, tell us immediately so we can re-check it.
 - "Paid" in this portal means an admin has recorded that an external payment was sent. No money moves automatically.
+
+## Program accounts — ownership and handover
+
+Any creator account made for this program stays under Band9Prep's full control. If you leave the program, you must hand the account over to us — including login access — and stop using it. Do not delete, rename, transfer, or lock the account on exit.
 
 ## Acknowledgement
 
@@ -117,7 +120,7 @@ Monthly, after review, via eSewa, Khalti, or bank transfer.
 
 ## Where do I ask questions?
 
-Use Messages in the sidebar, or email {{email}}.
+Use Messages in the sidebar, or contact us on [WhatsApp](https://wa.link/zthuqj).
     `.trim(),
   },
   "payouts-explained": {

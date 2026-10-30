@@ -14,14 +14,15 @@ export type AdminDeliverable = {
   url: string;
   dueOn: string;
   createdAt: string;
+  reviewNote?: string;
 };
 
-const KINDS = ["design", "copy", "build", "document", "other"];
+const KINDS = ["tiktok", "instagram", "youtube", "other"];
 
 export default function AdminDeliverables({ userId, items }: { userId: number; items: AdminDeliverable[] }) {
   const router = useRouter();
   const [adding, setAdding] = useState(items.length === 0);
-  const [draft, setDraft] = useState({ title: "", summary: "", kind: "design", url: "", dueOn: "" });
+  const [draft, setDraft] = useState({ title: "", summary: "", kind: "tiktok", url: "", dueOn: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<number | null>(null);
@@ -41,7 +42,7 @@ export default function AdminDeliverables({ userId, items }: { userId: number; i
       const data = await res.json().catch(() => ({}));
       return setError(data.error || "Could not add that.");
     }
-    setDraft({ title: "", summary: "", kind: "design", url: "", dueOn: "" });
+    setDraft({ title: "", summary: "", kind: "tiktok", url: "", dueOn: "" });
     setAdding(false);
     router.refresh();
   }
@@ -124,6 +125,11 @@ export default function AdminDeliverables({ userId, items }: { userId: number; i
                     <span className="mono">{d.kind}</span>
                   </div>
                   {d.summary && <p className="text-[13px] text-[var(--muted)] leading-relaxed">{d.summary}</p>}
+                  {d.status === "rejected" && d.reviewNote && (
+                    <p className="text-[13px] leading-relaxed mt-1.5" style={{ color: "var(--danger)" }}>
+                      Rejection reason (visible to creator): {d.reviewNote}
+                    </p>
+                  )}
                   <div className="flex items-center gap-4 mt-2">
                     {d.dueOn && <span className="mono">Due {fmtDate(d.dueOn)}</span>}
                     {d.url && (

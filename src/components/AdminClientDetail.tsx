@@ -55,7 +55,7 @@ export default function AdminClientDetail({
   intake: { form: Form; data: Record<string, string | string[]>; status: string; submittedAt: string | null }[];
   checklists: { stepId: string; title: string; items: string[]; checked: boolean[] }[];
   deliverables: AdminDeliverable[];
-  files: { id: number; name: string; size: number; createdAt: string; category: string; fromUs: boolean }[];
+  files: { id: number; name: string; size: number; createdAt: string; category: string; fromUs: boolean; isLink?: boolean; url?: string }[];
   messages: ThreadMessage[];
   notes: { id: number; body: string; authorName: string; createdAt: string }[];
   activity: { id: number; kind: string; summary: string; actorName: string; createdAt: string }[];
@@ -322,6 +322,9 @@ export default function AdminClientDetail({
             <p className="eyebrow mb-3">Send a file to {client.name.split(" ")[0]}</p>
             <AdminUploader userId={client.id} />
           </div>
+          <div className="card p-5">
+            <AdminLinkForm userId={client.id} firstName={client.name.split(" ")[0]} />
+          </div>
           <div className="card overflow-hidden">
             {files.length === 0 ? (
               <p className="text-sm text-[var(--muted)] p-8 text-center">No files yet.</p>
@@ -335,13 +338,19 @@ export default function AdminClientDetail({
                     {files.map((f) => (
                       <tr key={f.id}>
                         <td className="max-w-[240px]">
-                          <a href={`/api/files/${f.id}`} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline underline-offset-2 truncate block">{f.name}</a>
+                          {f.isLink && f.url ? (
+                            <a href={f.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline underline-offset-2 truncate block">{f.name} ↗</a>
+                          ) : (
+                            <a href={`/api/files/${f.id}`} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline underline-offset-2 truncate block">{f.name}</a>
+                          )}
                         </td>
-                        <td className="hidden sm:table-cell mono">{f.category}</td>
+                        <td className="hidden sm:table-cell mono">{f.isLink ? "link" : f.category}</td>
                                             <td className="hidden sm:table-cell"><span className="chip chip-flat">{f.fromUs ? "Us" : "Creator"}</span></td>
-                        <td className="hidden md:table-cell num text-[var(--muted)]">{fmtBytes(f.size)}</td>
+                        <td className="hidden md:table-cell num text-[var(--muted)]">{f.isLink ? "—" : fmtBytes(f.size)}</td>
                         <td className="hidden md:table-cell text-[var(--muted)]">{timeAgo(f.createdAt)}</td>
-                        <td className="text-right"><a href={`/api/files/${f.id}?download=1`} className="btn btn-quiet btn-sm">Download</a></td>
+                        <td className="text-right">
+                          {!(f.isLink && f.url) && <a href={`/api/files/${f.id}?download=1`} className="btn btn-quiet btn-sm">Download</a>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -353,10 +362,52 @@ export default function AdminClientDetail({
       )}
 
       {tab === "messages" && (
-        <Thread initial={messages} me="admin" userId={client.id} emptyLine={`No messages with ${client.name} yet. Say hello — it is the first thing they see in the portal.`} />
+        <div className="space-y-3">
+          <CreatorContactBar email={client.email} intake={intake} />
+          <Thread initial={messages} me="admin" userId={client.id} emptyLine={`No messages with ${client.name} yet. Say hello — it is the first thing they see in the portal.`} />
+        </div>
       )}
 
       {tab === "notes" && <Notes userId={client.id} notes={notes} />}
+    </div>
+  );
+}
+
+function CreatorContactBar({ email, intake }: { email: string; intake: { data: Record<string, string | string[]> }[] }) {
+  let phone = "";
+  for (const entry of intake) {
+    const v = entry.data?.phone;
+    if (typeof v === "string" && v.trim()) phone = v.trim();
+    else if (Array.isArray(v) && v.join("").trim()) phone = v.join(", ");
+    if (phone) break;
+  }
+  const digits = phone.replace(/\D/g, "");
+  const whatsappHref = digits.length >= 7 ? `https://wa.me/${digits}` : "";
+
+  return (
+    <div className="grid sm:grid-cols-2 gap-2.5">
+      {whatsappHref ? (
+        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="card card-hover p-4 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(37,211,102,0.15)", border: "1px solid rgba(37,211,102,0.35)" }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="#25D366" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.5.1-.7l.5-.6c.1-.2.1-.4 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.2-.7.5-.9.9-1.1 2.2-.2 3.9a12 12 0 0 0 4.5 4.2c1.7.8 2.4.9 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2 0-.1-.2-.1-.5-.3Z" /></svg>
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold leading-tight">WhatsApp</span>
+            <span className="block text-[12.5px] text-[var(--muted)] truncate">{phone}</span>
+          </span>
+          <span className="ml-auto text-[var(--muted)] shrink-0" aria-hidden="true">↗</span>
+        </a>
+      ) : null}
+      <a href={`mailto:${email}`} className="card card-hover p-4 flex items-center gap-3">
+        <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(216,207,192,0.1)", border: "1px solid var(--border-hi)" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[14px] font-semibold leading-tight">Email</span>
+          <span className="block text-[12.5px] text-[var(--muted)] truncate">{email}</span>
+        </span>
+        <span className="ml-auto text-[var(--muted)] shrink-0" aria-hidden="true">↗</span>
+      </a>
     </div>
   );
 }
@@ -447,6 +498,55 @@ function AdminUploader({ userId }: { userId: number }) {
       </label>
       {error && <p className="text-sm text-[var(--danger)] mt-3">{error}</p>}
     </div>
+  );
+}
+
+function AdminLinkForm({ userId, firstName }: { userId: number; firstName: string }) {
+  const router = useRouter();
+  const [label, setLabel] = useState("");
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setDone("");
+    if (!label.trim()) return setError("Give the link a title.");
+    if (!url.trim()) return setError("Paste the link.");
+    setBusy(true);
+    const res = await fetch("/api/admin/files/link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, label: label.trim(), url: url.trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) return setError(data.error || "Could not share that link.");
+    setLabel("");
+    setUrl("");
+    setDone("Shared — it is in their Files tab now.");
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={add}>
+      <p className="eyebrow mb-3">Share a link with {firstName}</p>
+      <div className="grid sm:grid-cols-2 gap-3.5">
+        <div>
+          <label className="label" htmlFor="link-label">Title <span className="req">*</span></label>
+          <input id="link-label" className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Brand handbook" />
+        </div>
+        <div>
+          <label className="label" htmlFor="link-url">Link <span className="req">*</span></label>
+          <input id="link-url" type="url" className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
+        </div>
+      </div>
+      {error && <p className="text-sm text-[var(--danger)] mt-3">{error}</p>}
+      {done && <p className="text-sm mt-3" style={{ color: "var(--accent)" }}>{done}</p>}
+      <button type="submit" disabled={busy} className="btn btn-primary btn-sm mt-4">{busy ? "Sharing…" : "Share link"}</button>
+    </form>
   );
 }
 

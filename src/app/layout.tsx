@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: `${name} · Creator Portal`, template: `%s · ${name}` },
     description: s.portal_tagline || BRAND.description,
-    icons: { icon: "/brand/favicon.svg" },
+    icons: { icon: "/brand/b9.jpg" },
     openGraph: { title: `${name} · Creator Portal`, description: s.portal_tagline || BRAND.description, images: ["/brand/og.jpg"] },
   };
 }

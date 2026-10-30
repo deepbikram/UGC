@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Field, Form } from "@/lib/forms";
+import { isFieldRequired, isFieldVisible } from "@/lib/forms";
 
 type Values = Record<string, string | string[]>;
 
@@ -52,8 +53,10 @@ export default function FormStep({
     set(id, current.includes(option) ? current.filter((o) => o !== option) : [...current, option]);
   }
 
-  const missing = form.fields.filter((f) => {
-    if (!f.required) return false;
+  const visibleFields = form.fields.filter((f) => isFieldVisible(f, values));
+
+  const missing = visibleFields.filter((f) => {
+    if (!isFieldRequired(f, values)) return false;
     const v = values[f.id];
     return Array.isArray(v) ? v.length === 0 : !String(v ?? "").trim();
   });
@@ -85,7 +88,7 @@ export default function FormStep({
           <button onClick={() => setEditing(true)} className="btn btn-ghost btn-sm shrink-0">Edit answers</button>
         </div>
         <dl className="space-y-px">
-          {form.fields.map((f) => {
+          {visibleFields.map((f) => {
             const v = values[f.id];
             const text = Array.isArray(v) ? v.join(", ") : String(v ?? "");
             return (
@@ -105,8 +108,8 @@ export default function FormStep({
       <p className="text-[13px] text-[var(--muted)] mb-6 leading-relaxed max-w-xl">{form.intro}</p>
 
       <div className="grid sm:grid-cols-2 gap-x-5 gap-y-5">
-        {form.fields.map((f) => (
-          <FieldInput key={f.id} field={f} value={values[f.id]} onChange={set} onToggle={toggle} />
+        {visibleFields.map((f) => (
+          <FieldInput key={f.id} field={f} value={values[f.id]} onChange={set} onToggle={toggle} required={isFieldRequired(f, values)} />
         ))}
       </div>
 
@@ -129,15 +132,18 @@ function FieldInput({
   value,
   onChange,
   onToggle,
+  required,
 }: {
   field: Field;
   value: string | string[] | undefined;
   onChange: (id: string, v: string) => void;
   onToggle: (id: string, option: string) => void;
+  required?: boolean;
 }) {
+  const isRequired = required ?? field.required;
   const label = (
     <label className="label" htmlFor={field.id}>
-      {field.label} {field.required && <span className="req">*</span>}
+      {field.label} {isRequired && <span className="req">*</span>}
     </label>
   );
   const span = field.half ? "" : "sm:col-span-2";

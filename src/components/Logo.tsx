@@ -1,20 +1,18 @@
-// The Portico lockup: an arch — the entryway a portico is — drawn inline so it
-// stays crisp at any size and inherits the page font for the wordmark.
+// The Band9Prep mark, served from public/brand so swapping art never needs a
+// rebuild — just replace the file. The wordmark beside it stays type.
 
 export function LogoMark({ size = 28 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden className="shrink-0">
-      <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="#121211" />
-      <rect x="1.5" y="1.5" width="61" height="61" rx="15" stroke="#2e2d2a" strokeWidth="2" />
-      <path
-        d="M17 48V29.5a15 15 0 0 1 30 0V48"
-        stroke="var(--accent, #d8cfc0)"
-        strokeWidth="4.6"
-        strokeLinecap="round"
-      />
-      <path d="M12 52.5h40" stroke="#f4f3ef" strokeWidth="4.6" strokeLinecap="round" />
-      <path d="M32 48V33" stroke="#f4f3ef" strokeWidth="3" strokeLinecap="round" opacity="0.32" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brand/b9.jpg"
+      alt=""
+      width={size}
+      height={size}
+      aria-hidden
+      className="shrink-0"
+      style={{ borderRadius: Math.max(6, Math.round(size * 0.24)) }}
+    />
   );
 }
 

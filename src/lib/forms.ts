@@ -14,6 +14,9 @@ export type Field = {
   options?: string[];
   /** Renders two fields side by side on wide screens. */
   half?: boolean;
+  /** Show this field only when another field's answer matches. For
+   *  multiselect answers use `includes`; for anything else use `equals`. */
+  visibleIf?: { field: string; includes?: string; equals?: string };
 };
 
 export type Form = {
@@ -34,33 +37,27 @@ export const FORMS: Record<string, Form> = {
       { id: "country", label: "Country", type: "text", required: true, half: true, placeholder: "Nepal" },
       { id: "city", label: "City", type: "text", half: true, placeholder: "Kathmandu" },
       { id: "display_name", label: "Creator display name / handle", type: "text", required: true, half: true, placeholder: "@yourhandle" },
-      { id: "primary_platform", label: "Primary platform", type: "select", required: true, half: true, options: ["TikTok", "Instagram Reels", "YouTube Shorts"] },
-      { id: "tiktok_url", label: "TikTok profile URL", type: "url", placeholder: "https://tiktok.com/…" },
-      { id: "instagram_url", label: "Instagram profile URL", type: "url", placeholder: "https://instagram.com/…" },
-      { id: "youtube_url", label: "YouTube profile URL", type: "url", placeholder: "https://youtube.com/…" },
-      { id: "followers", label: "Approximate audience / followers (optional)", type: "text", half: true, help: "Optional. Follower count is not an eligibility threshold.", placeholder: "e.g. 12k" },
+      { id: "primary_platform", label: "Platforms you publish on", type: "multiselect", required: true, options: ["TikTok", "Instagram Reels", "YouTube Shorts"], help: "Pick all that apply — at least one." },
+      { id: "tiktok_url", label: "TikTok profile URL", type: "url", placeholder: "https://tiktok.com/…", visibleIf: { field: "primary_platform", includes: "TikTok" } },
+      { id: "instagram_url", label: "Instagram profile URL", type: "url", placeholder: "https://instagram.com/…", visibleIf: { field: "primary_platform", includes: "Instagram Reels" } },
+      { id: "youtube_url", label: "YouTube profile URL", type: "url", placeholder: "https://youtube.com/…", visibleIf: { field: "primary_platform", includes: "YouTube Shorts" } },
       { id: "languages", label: "Content language(s)", type: "text", required: true, half: true, placeholder: "e.g. Nepali, English" },
-      { id: "niche", label: "Content niche / about you", type: "textarea", required: true, help: "A few lines on what you post and who watches." },
-      { id: "portfolio_url", label: "Prior UGC / brand work link (optional)", type: "url", placeholder: "https://" },
-      { id: "contact_method", label: "Preferred contact method", type: "select", required: true, half: true, options: ["WhatsApp", "Phone", "Email", "Viber"] },
-      { id: "contact_handle", label: "Contact handle / number", type: "text", required: true, half: true, placeholder: "How Band9Prep reaches you" },
-      { id: "notes", label: "Anything else / availability (optional)", type: "textarea" },
     ],
   },
   payout_details: {
     id: "payout_details",
     title: "Payout details",
-    intro: "Where monthly payouts go. Only fill the section for your chosen method. Keep these current — if they change after a payout is prepared, tell us so we can re-check it.",
+    intro: "Where monthly payouts go. Only your chosen method's fields appear. Keep these current — if they change after a payout is prepared, tell us so we can re-check it.",
     fields: [
-      { id: "method", label: "Payout method", type: "select", required: true, options: ["eSewa", "Khalti", "Bank transfer"] },
-      { id: "esewa_name", label: "eSewa account holder name", type: "text", half: true, help: "Fill if method is eSewa." },
-      { id: "esewa_id", label: "eSewa ID / registered mobile", type: "text", half: true },
-      { id: "khalti_name", label: "Khalti account holder name", type: "text", half: true, help: "Fill if method is Khalti." },
-      { id: "khalti_id", label: "Khalti ID / registered mobile", type: "text", half: true },
-      { id: "bank_holder", label: "Bank account holder name", type: "text", half: true, help: "Fill if method is bank transfer." },
-      { id: "bank_name", label: "Bank name", type: "text", half: true },
-      { id: "bank_account", label: "Account number", type: "text", half: true },
-      { id: "bank_branch", label: "Branch (optional)", type: "text", half: true },
+      { id: "method", label: "Payout method", type: "select", required: true, half: true, options: ["eSewa", "Khalti", "Bank transfer"] },
+      { id: "esewa_name", label: "eSewa account holder name", type: "text", half: true, visibleIf: { field: "method", equals: "eSewa" } },
+      { id: "esewa_id", label: "eSewa ID / registered mobile", type: "text", half: true, visibleIf: { field: "method", equals: "eSewa" } },
+      { id: "khalti_name", label: "Khalti account holder name", type: "text", half: true, visibleIf: { field: "method", equals: "Khalti" } },
+      { id: "khalti_id", label: "Khalti ID / registered mobile", type: "text", half: true, visibleIf: { field: "method", equals: "Khalti" } },
+      { id: "bank_holder", label: "Bank account holder name", type: "text", half: true, visibleIf: { field: "method", equals: "Bank transfer" } },
+      { id: "bank_name", label: "Bank name", type: "text", half: true, visibleIf: { field: "method", equals: "Bank transfer" } },
+      { id: "bank_account", label: "Account number", type: "text", half: true, visibleIf: { field: "method", equals: "Bank transfer" } },
+      { id: "bank_branch", label: "Branch (optional)", type: "text", half: true, visibleIf: { field: "method", equals: "Bank transfer" } },
     ],
   },
   feedback: {
@@ -87,10 +84,47 @@ export function getForm(id: string): Form | undefined {
   return FORMS[id];
 }
 
+/** The platforms a creator picked, as an array — tolerates the old
+ *  single-select string saved before platforms became multi-pick. */
+function platformPicks(data: Record<string, unknown>): string[] {
+  const v = data["primary_platform"];
+  if (Array.isArray(v)) return v.map(String);
+  return typeof v === "string" && v ? [v] : [];
+}
+
+/** False when a `visibleIf` rule hides the field for the current answers. */
+export function isFieldVisible(field: Field, data: Record<string, unknown>): boolean {
+  const rule = field.visibleIf;
+  if (!rule) return true;
+  const v = data[rule.field];
+  if (rule.includes !== undefined) {
+    return Array.isArray(v) ? v.map(String).includes(rule.includes) : String(v ?? "") === rule.includes;
+  }
+  if (rule.equals !== undefined) {
+    return String(v ?? "") === rule.equals;
+  }
+  return true;
+}
+
+/** True when every required field has a non-empty answer. */
+export function isFieldRequired(field: Field, data: Record<string, unknown>): boolean {
+  if (field.required) return true;
+  const picks = platformPicks(data);
+  if (field.id === "tiktok_url") return picks.includes("TikTok");
+  if (field.id === "instagram_url") return picks.includes("Instagram Reels");
+  if (field.id === "youtube_url") return picks.includes("YouTube Shorts");
+  const method = String(data["method"] ?? "");
+  if (field.id === "esewa_name" || field.id === "esewa_id") return method === "eSewa";
+  if (field.id === "khalti_name" || field.id === "khalti_id") return method === "Khalti";
+  if (field.id === "bank_holder" || field.id === "bank_name" || field.id === "bank_account") return method === "Bank transfer";
+  return false;
+}
+
 /** True when every required field has a non-empty answer. */
 export function isFormComplete(form: Form, data: Record<string, unknown>): boolean {
   return form.fields.every((f) => {
-    if (!f.required) return true;
+    if (!isFieldVisible(f, data)) return true;
+    if (!isFieldRequired(f, data)) return true;
     const v = data[f.id];
     if (Array.isArray(v)) return v.length > 0;
     return typeof v === "string" ? v.trim().length > 0 : v !== undefined && v !== null;

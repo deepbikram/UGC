@@ -123,26 +123,6 @@ export const JOURNEY: Module[] = [
     description: "Submit published videos, attach view evidence, and see how payouts add up.",
     steps: [
       {
-        id: "videos-board",
-        title: "Your video submissions",
-        description: "One record per published video. Your admin adds rows from the admin side for now.",
-        type: "board",
-      },
-      {
-        id: "videos-evidence",
-        title: "View evidence",
-        description: "Screenshots of platform analytics (e.g. TikTok Studio) for your submitted videos.",
-        type: "upload",
-        upload: {
-          category: "evidence",
-          asks: [
-            "Screenshot of analytics for each submitted video",
-            "Capture the view count and the date visibly",
-            "One file per video is enough",
-          ],
-        },
-      },
-      {
         id: "videos-payouts",
         title: "How payouts are calculated",
         description: "Eligible views, confirmed rate, and what each amount label means.",

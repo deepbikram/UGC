@@ -3,14 +3,15 @@
 import StatusChip from "./StatusChip";
 import { fmtDate } from "@/lib/format";
 
-export type BoardItem = { id: number; title: string; summary: string; status: string; url: string; dueOn: string };
+export type BoardItem = { id: number; title: string; summary: string; status: string; url: string; dueOn: string; reviewNote?: string };
 
-const ORDER = ["review", "in_progress", "queued", "approved"] as const;
+const ORDER = ["review", "in_progress", "queued", "approved", "rejected"] as const;
 const GROUP_TITLE: Record<string, string> = {
   review: "Awaiting review",
   in_progress: "In progress",
   queued: "Submitted",
   approved: "Eligible",
+  rejected: "Rejected",
 };
 
 // Read-only for creators: the Band9Prep team moves videos through review
@@ -63,6 +64,11 @@ export default function DeliverablesBoard({ items, compact = false }: { items: B
                         <StatusChip status={d.status} />
                       </div>
                       {d.summary && <p className="text-[13px] text-[var(--muted)] leading-relaxed">{d.summary}</p>}
+                      {d.status === "rejected" && d.reviewNote && (
+                        <p className="text-[13px] leading-relaxed mt-1.5" style={{ color: "var(--danger)" }}>
+                          Why it was rejected: {d.reviewNote}
+                        </p>
+                      )}
                       <div className="flex items-center gap-4 mt-2.5">
                         {d.dueOn && <span className="mono">Posted {fmtDate(d.dueOn)}</span>}
                         {d.url && (

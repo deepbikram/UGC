@@ -47,6 +47,15 @@ export default function ModuleView({
   const [done, setDone] = useState<Set<string>>(new Set(completed));
   const [open, setOpen] = useState<string | null>(() => mod.steps.find((s) => !completed.includes(s.id))?.id ?? mod.steps[0]?.id ?? null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [checkErr, setCheckErr] = useState<Record<string, string>>({});
+  const [checks, setChecks] = useState<Record<string, boolean[]>>(() => {
+    const init: Record<string, boolean[]> = {};
+    for (const s of mod.steps) {
+      const d = stepData[s.id];
+      if (d?.kind === "checklist") init[s.id] = [...d.checked];
+    }
+    return init;
+  });
 
   const doneCount = mod.steps.filter((s) => done.has(s.id)).length;
   const pct = mod.steps.length ? Math.round((doneCount / mod.steps.length) * 100) : 0;
@@ -97,6 +106,31 @@ export default function ModuleView({
       return;
     }
     setComplete(stepId, true);
+  }
+
+  /** Acknowledgement: all boxes compulsory, submitted explicitly, then locked. */
+  async function agreeChecklist(stepId: string) {
+    const step = mod.steps.find((s) => s.id === stepId);
+    const total = step?.checklist?.length ?? 0;
+    const answers = checks[stepId] ?? [];
+    if (!(answers.length === total && answers.every(Boolean))) {
+      setCheckErr((p) => ({ ...p, [stepId]: `Tick all ${total} boxes to continue.` }));
+      return;
+    }
+    setCheckErr((p) => ({ ...p, [stepId]: "" }));
+    setBusy(stepId);
+    const res = await fetch(`/api/forms/${stepId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: { items: answers }, submit: true }),
+    });
+    setBusy(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setCheckErr((p) => ({ ...p, [stepId]: data.error || "Could not submit." }));
+      return;
+    }
+    await setComplete(stepId, true);
   }
 
   return (
@@ -166,10 +200,21 @@ export default function ModuleView({
                     <UploadStep category={data.category} asks={data.asks} initialFiles={data.files} onUploaded={() => markFromContent(step.id)} />
                   )}
                   {data?.kind === "checklist" && (
-                    <ChecklistStep stepId={step.id} items={data.items} checked={data.checked} onAllChecked={() => markFromContent(step.id)} />
+                    <ChecklistStep
+                      stepId={step.id}
+                      items={data.items}
+                      checked={checks[step.id] ?? data.checked}
+                      disabled={isDone}
+                      onChange={(next) => {
+                        setChecks((p) => ({ ...p, [step.id]: next }));
+                        if (next.length === data.items.length && next.every(Boolean)) {
+                          setCheckErr((p) => ({ ...p, [step.id]: "" }));
+                        }
+                      }}
+                    />
                   )}
                   {data?.kind === "action" && <ActionStep label={data.label} url={data.url} note={data.note} />}
-                  {data?.kind === "board" && <BoardStep items={data.items} />}
+                  {data?.kind === "board" && <BoardStep />}
                   {data?.kind === "handoff" && (
                     <HandoffStep
                       intro={data.intro}
@@ -190,6 +235,17 @@ export default function ModuleView({
                           Reopen
                         </button>
                       </>
+                    ) : step.type === "checklist" ? (
+                      <div>
+                        <button onClick={() => agreeChecklist(step.id)} disabled={busy === step.id} className="btn btn-primary">
+                          {busy === step.id ? "Saving…" : "Agree and continue"}
+                        </button>
+                        {checkErr[step.id] ? (
+                          <p className="text-sm text-[var(--danger)] mt-3">{checkErr[step.id]}</p>
+                        ) : (
+                          <p className="mono mt-3">Tick every box to continue.</p>
+                        )}
+                      </div>
                     ) : (
                       <button onClick={() => setComplete(step.id, true)} disabled={busy === step.id} className="btn btn-primary">
                         {busy === step.id ? "Saving…" : "Mark complete"}

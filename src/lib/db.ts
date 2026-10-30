@@ -61,9 +61,10 @@ export type Deliverable = {
   created_at: string;
   delivered_at: string | null;
   approved_at: string | null;
+  review_note: string;
 };
 
-export type DeliverableStatus = "queued" | "in_progress" | "review" | "approved";
+export type DeliverableStatus = "queued" | "in_progress" | "review" | "approved" | "rejected";
 
 export type FileRow = {
   id: number;

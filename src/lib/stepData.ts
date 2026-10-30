@@ -10,7 +10,7 @@ export type StepData =
   | { kind: "upload"; category: string; asks: string[]; files: StepFile[] }
   | { kind: "checklist"; items: string[]; checked: boolean[] }
   | { kind: "action"; label: string; url: string; note: string }
-  | { kind: "board"; items: { id: number; title: string; summary: string; status: string; url: string; dueOn: string }[] }
+  | { kind: "board"; items: { id: number; title: string; summary: string; status: string; url: string; dueOn: string; reviewNote?: string }[] }
   | {
       kind: "handoff";
       intro: string;

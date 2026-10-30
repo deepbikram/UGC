@@ -76,6 +76,7 @@ export default async function AdminClientPage({
           url: d.url,
           dueOn: d.due_on,
           createdAt: d.created_at,
+          reviewNote: d.review_note,
         }))}
         files={(await files(client.id)).map((f) => ({
           id: f.id,
@@ -84,6 +85,8 @@ export default async function AdminClientPage({
           createdAt: f.created_at,
           category: f.category,
           fromUs: f.uploader_role === "admin",
+          isLink: f.mime === "link",
+          url: f.mime === "link" ? f.stored_name : "",
         }))}
         messages={(await messages(client.id)).map((m) => ({ id: m.id, body: m.body, authorName: m.author_name, authorRole: m.author_role, createdAt: m.created_at }))}
         notes={(await notes(client.id)).map((n) => ({ id: n.id, body: n.body, authorName: n.author_name, createdAt: n.created_at }))}

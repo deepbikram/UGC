@@ -61,14 +61,14 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
     } else if (step.type === "board") {
       stepData[step.id] = {
         kind: "board",
-        items: (await deliverables(session.userId)).map((d) => ({ id: d.id, title: d.title, summary: d.summary, status: d.status, url: d.url, dueOn: d.due_on })),
+        items: (await deliverables(session.userId)).map((d) => ({ id: d.id, title: d.title, summary: d.summary, status: d.status, url: d.url, dueOn: d.due_on, reviewNote: d.review_note })),
       };
     } else if (step.type === "handoff") {
       stepData[step.id] = {
         kind: "handoff",
         intro: await marked.parse(DOCS.handoff.body),
         deliverables: (await deliverables(session.userId)).map((d) => ({ id: d.id, title: d.title, status: d.status, url: d.url })),
-        files: (await files(session.userId)).map((f) => ({ id: f.id, name: f.file_name, size: f.size, category: f.category })),
+        files: (await files(session.userId)).map((f) => ({ id: f.id, name: f.file_name, size: f.size, category: f.category, url: f.mime === "link" ? f.stored_name : "" })),
         supportEmail: s.support_email,
         projectName: user?.project_name || user?.company || "",
         clientName: user?.name || "",

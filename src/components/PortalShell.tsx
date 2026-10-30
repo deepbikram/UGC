@@ -54,7 +54,7 @@ const ICONS = {
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Creators", match: (p) => p === "/admin" || p.startsWith("/admin/clients"), icon: ICONS.users },
   { href: "/admin/work", label: "Videos", match: (p) => p.startsWith("/admin/work"), icon: ICONS.board },
-  { href: "/admin/messages", label: "Messages", match: (p) => p.startsWith("/admin/messages"), icon: ICONS.chat },
+  { href: "/admin/content", label: "Content", match: (p) => p.startsWith("/admin/content"), icon: ICONS.files },
   { href: "/admin/activity", label: "Activity", match: (p) => p.startsWith("/admin/activity"), icon: ICONS.pulse },
   { href: "/admin/settings", label: "Settings", match: (p) => p.startsWith("/admin/settings"), icon: ICONS.cog },
 ];
@@ -102,8 +102,8 @@ export default function PortalShell({
 
   const clientTail: NavItem[] = [
     { href: "/deliverables", label: "My videos", match: (p) => p.startsWith("/deliverables"), icon: ICONS.board },
-    { href: "/files", label: "Files", match: (p) => p.startsWith("/files"), icon: ICONS.files },
-    { href: "/messages", label: "Messages", badge: unread, match: (p) => p.startsWith("/messages"), icon: ICONS.chat },
+    { href: "/files", label: "Content", match: (p) => p.startsWith("/files"), icon: ICONS.files },
+    { href: "/messages", label: "Contact us", badge: unread, match: (p) => p.startsWith("/messages"), icon: ICONS.chat },
   ];
 
   function IconLink({ item }: { item: NavItem }) {
@@ -257,7 +257,7 @@ export default function PortalShell({
     <>
       <div className="px-6 pt-7 pb-6">
         <Link href={view === "admin" ? "/admin" : "/"} className="inline-block">
-          <Logo size={28} name={portalName} />
+          <Logo size={28} name="Creator Partnership" />
         </Link>
         {view === "admin" && (
           <p className="eyebrow mt-3 flex items-center gap-2">
@@ -278,7 +278,7 @@ export default function PortalShell({
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
         </button>
         <Link href={view === "admin" ? "/admin" : "/"}>
-          <Logo size={22} name={portalName} />
+          <Logo size={22} name="Creator Partnership" />
         </Link>
         {view === "client" ? <span className="text-xs font-semibold text-neutral-300 num">{stats.pct}%</span> : <span className="w-9" />}
       </header>

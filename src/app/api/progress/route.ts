@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { logActivity } from "@/lib/db";
-import { completeStep, uncompleteStep } from "@/lib/clients";
+import { completeStep, formResponse, uncompleteStep } from "@/lib/clients";
 import { ALL_STEP_IDS, ALL_STEPS, moduleOf } from "@/lib/journey";
 
 export async function POST(req: Request) {
@@ -14,8 +14,20 @@ export async function POST(req: Request) {
   // Admins can tick a step on a client's behalf; clients only ever touch their own.
   const targetId = session.role === "admin" && userId ? Number(userId) : session.userId;
 
-  if (done) await completeStep(targetId, String(stepId));
-  else await uncompleteStep(targetId, String(stepId));
+  // Checklist steps (acknowledgements) require every box ticked — no skipping
+  // with zero checked, even via a direct API call.
+  if (done) {
+    const step = ALL_STEPS.find((s) => s.id === String(stepId));
+    if (step?.type === "checklist") {
+      const saved = await formResponse(targetId, String(stepId));
+      const items = (saved.data as { items?: unknown }).items;
+      const expected = step.checklist?.length ?? 0;
+      if (!Array.isArray(items) || items.length !== expected || !items.every((v) => v === true)) {
+        return NextResponse.json({ error: "Tick every box to continue." }, { status: 400 });
+      }
+    }
+    await completeStep(targetId, String(stepId));
+  } else await uncompleteStep(targetId, String(stepId));
 
   const step = ALL_STEPS.find((s) => s.id === stepId);
   await logActivity({

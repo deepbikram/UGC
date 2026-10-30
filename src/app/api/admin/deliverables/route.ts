@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { get, logActivity, run, type Deliverable } from "@/lib/db";
 
-const STATUSES = new Set(["queued", "in_progress", "review", "approved"]);
+const STATUSES = new Set(["queued", "in_progress", "review", "approved", "rejected"]);
 
 export async function POST(req: Request) {
   const session = await requireRole("admin");
@@ -25,12 +25,15 @@ export async function PATCH(req: Request) {
   const session = await requireRole("admin");
   if (!session) return NextResponse.json({ error: "Admins only." }, { status: 403 });
 
-  const { id, status, title, summary, url, dueOn, kind } = await req.json().catch(() => ({}));
+  const { id, status, title, summary, url, dueOn, kind, reviewNote } = await req.json().catch(() => ({}));
   const row = await get<Deliverable>("SELECT * FROM deliverables WHERE id = ?", [Number(id)]);
   if (!row) return NextResponse.json({ error: "Deliverable not found." }, { status: 404 });
 
   if (status !== undefined) {
     if (!STATUSES.has(String(status))) return NextResponse.json({ error: "Unknown status." }, { status: 400 });
+    if (String(status) === "rejected" && !String(reviewNote ?? row.review_note ?? "").trim()) {
+      return NextResponse.json({ error: "Write the rejection reason first." }, { status: 400 });
+    }
     await run(
       `UPDATE deliverables SET status = ?,
          delivered_at = CASE WHEN ? IN ('review','approved') THEN COALESCE(delivered_at, datetime('now')) ELSE NULL END,
@@ -47,6 +50,7 @@ export async function PATCH(req: Request) {
   if (url !== undefined) fields.push(["url", String(url).slice(0, 500)]);
   if (dueOn !== undefined) fields.push(["due_on", String(dueOn).slice(0, 20) || null]);
   if (kind !== undefined) fields.push(["kind", String(kind).slice(0, 40)]);
+  if (reviewNote !== undefined) fields.push(["review_note", String(reviewNote).slice(0, 2000)]);
   if (fields.length) {
     await run(`UPDATE deliverables SET ${fields.map(([f]) => `${f} = ?`).join(", ")} WHERE id = ?`, [...fields.map(([, v]) => v), row.id]);
   }

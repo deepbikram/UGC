@@ -62,15 +62,15 @@ export default function Thread({
     );
   }
 
+  // Creators only message back: with nothing yet, there is no box and no
+  // composer on their side. Admins keep the composer to start the thread.
+  if (items.length === 0 && me !== "admin") return null;
+
   return (
-    <div className="card flex flex-col" style={{ minHeight: "min(62vh, 560px)" }}>
-      <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ maxHeight: "min(62vh, 560px)" }}>
-        {items.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-center px-6 py-10">
-            <p className="text-sm text-[var(--muted)] max-w-xs leading-relaxed">{emptyLine}</p>
-          </div>
-        ) : (
-          items.map((m) => {
+    <div className="card flex flex-col" style={items.length === 0 ? undefined : { minHeight: "min(62vh, 560px)" }}>
+      {items.length > 0 && (
+        <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ maxHeight: "min(62vh, 560px)" }}>
+          {items.map((m) => {
             const mine = m.authorRole === me;
             return (
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
@@ -80,10 +80,10 @@ export default function Thread({
                 </p>
               </div>
             );
-          })
-        )}
-        <div ref={endRef} />
-      </div>
+          })}
+          <div ref={endRef} />
+        </div>
+      )}
 
       <form onSubmit={send} className="p-4 border-t border-[var(--border)]">
         {error && <p className="text-sm text-[var(--danger)] mb-2">{error}</p>}

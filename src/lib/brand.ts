@@ -23,6 +23,7 @@ export const SETTINGS_SCHEMA = [
       { key: "portal_tagline", label: "Tagline", help: "One line under the wordmark on the login screen.", default: BRAND.tagline },
       { key: "accent_color", label: "Accent colour", help: "Hex value used for progress, focus rings, and the active state.", default: BRAND.colors.accent, type: "color" },
       { key: "support_email", label: "Support email", help: "Where clients are told to reach you.", default: BRAND.supportEmail },
+      { key: "support_whatsapp", label: "WhatsApp link", help: "WhatsApp chat link shown in the Messages tab (wa.me link or phone number).", default: "https://wa.link/zthuqj" },
     ],
   },
   {

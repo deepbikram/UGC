@@ -14,7 +14,7 @@ export default function HandoffStep({
 }: {
   intro: string;
   deliverables: { id: number; title: string; status: string; url: string }[];
-  files: StepFile[];
+  files: (StepFile & { url?: string })[];
   supportEmail: string;
   projectName: string;
   clientName: string;
@@ -64,9 +64,15 @@ export default function HandoffStep({
           <ul className="space-y-px">
             {files.map((f) => (
               <li key={f.id} className="flex items-center gap-3 py-3 border-t border-[var(--border)] last:border-b">
-                <a href={`/api/files/${f.id}?download=1`} className="text-sm flex-1 min-w-0 truncate hover:underline underline-offset-2">{f.name}</a>
+                {f.category === "link" && f.url ? (
+                  <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm flex-1 min-w-0 truncate hover:underline underline-offset-2">{f.name} ↗</a>
+                ) : f.category === "link" ? (
+                  <span className="text-sm flex-1 min-w-0 truncate">{f.name}</span>
+                ) : (
+                  <a href={`/api/files/${f.id}?download=1`} className="text-sm flex-1 min-w-0 truncate hover:underline underline-offset-2">{f.name}</a>
+                )}
                 <span className="mono shrink-0">{f.category}</span>
-                <span className="mono shrink-0">{fmtBytes(f.size)}</span>
+                <span className="mono shrink-0">{f.category === "link" ? "link" : fmtBytes(f.size)}</span>
               </li>
             ))}
           </ul>

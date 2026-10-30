@@ -1,15 +1,14 @@
 "use client";
 
-import DeliverablesBoard, { type BoardItem } from "../DeliverablesBoard";
+import Link from "next/link";
 
-export default function BoardStep({ items }: { items: BoardItem[] }) {
+export default function BoardStep() {
   return (
     <div>
-      <p className="text-[13px] text-[var(--muted)] leading-relaxed mb-6 max-w-xl">
-        Anything sitting in <strong className="text-white font-medium">Waiting on you</strong> is blocking the next piece of work.
-        Approving is one click; requesting changes sends it back with the reason you leave in Messages.
+      <p className="text-[13px] text-[var(--muted)] leading-relaxed mb-5 max-w-xl">
+        Share the link of each video you publish with your campaign representative. Submitted videos appear in the Videos tab with a live review status.
       </p>
-      <DeliverablesBoard items={items} compact />
+      <Link href="/deliverables" className="btn btn-ghost btn-sm">Open Videos tab →</Link>
     </div>
   );
 }
