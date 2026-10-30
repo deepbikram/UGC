@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { completedSteps, deliverables, unreadFor } from "@/lib/clients";
+import { deliverables, portalData } from "@/lib/clients";
 import { JOURNEY, blockingModuleTitle, isModuleUnlocked } from "@/lib/journey";
-import { getContentVideos, PLATFORM_LABEL } from "@/lib/content";
+import { PLATFORM_LABEL } from "@/lib/platforms";
+import type { ContentVideo } from "@/lib/content";
 import PortalShell from "@/components/PortalShell";
 import DeliverablesBoard from "@/components/DeliverablesBoard";
 import VideoSubmitForm from "@/components/VideoSubmitForm";
@@ -15,10 +16,20 @@ export default async function DeliverablesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = await getSettings();
-  const done = await completedSteps(session.userId);
+  // ponytail: 1 shell trip + board; settings (incl. video library) cached
+  const [shell, s, rows] = await Promise.all([
+    portalData(session.userId),
+    getSettings(),
+    deliverables(session.userId),
+  ]);
+  let library: ContentVideo[] = [];
+  try {
+    const parsed = JSON.parse(s.content_videos || "[]");
+    if (Array.isArray(parsed)) library = parsed;
+  } catch { library = []; }
+  const done = shell.done;
   const completed = new Set(done);
-  const items = (await deliverables(session.userId)).map((d) => ({
+  const items = rows.map((d) => ({
     id: d.id,
     title: d.title,
     summary: d.summary,
@@ -33,7 +44,6 @@ export default async function DeliverablesPage() {
   const uploadsUnlocked =
     session.role === "admin" || videosIndex < 0 || isModuleUnlocked(videosIndex, completed);
   const blocker = !uploadsUnlocked ? blockingModuleTitle(videosIndex, completed) : null;
-  const library = await getContentVideos();
 
   return (
     <PortalShell
@@ -41,7 +51,7 @@ export default async function DeliverablesPage() {
       role={session.role}
       portalName={s.portal_name}
       completedSteps={done}
-      unread={await unreadFor(session.userId, "client")}
+      unread={shell.unread}
     >
       <div className="max-w-4xl mx-auto fade-up">
         <p className="eyebrow mb-3">My videos</p>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { getUser, completedSteps, deliverables, unreadFor } from "@/lib/clients";
+import { deliverables, portalData } from "@/lib/clients";
 import { journeyStats } from "@/lib/journey";
 import { fmtDate, timeAgo } from "@/lib/format";
 import PortalShell from "@/components/PortalShell";
@@ -20,15 +20,18 @@ export default async function Overview() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const user = await getUser(session.userId);
-  if (session.role === "client" && user && user.seen_intro === false) redirect("/onboarding");
-
-  const s = await getSettings();
-  const done = await completedSteps(session.userId);
+  // ponytail: 1 shell trip (user+steps+unread) + cached settings + board, all at once
+  const [shell, s, board] = await Promise.all([
+    portalData(session.userId),
+    getSettings(),
+    deliverables(session.userId),
+  ]);
+  const user = shell.user;
+  if (session.role === "client" && user && (user as { seen_intro?: boolean }).seen_intro === false) redirect("/onboarding");
+  const done = shell.done;
+  const unread = shell.unread;
   const completed = new Set(done);
   const stats = journeyStats(completed, session.role === "admin");
-  const board = await deliverables(session.userId);
-  const unread = await unreadFor(session.userId, "client");
 
   const firstName = (session.name || "").split(" ")[0];
   const total = board.length;
@@ -92,19 +95,10 @@ export default async function Overview() {
           </div>
         )}
 
-        {/* Continue journey (compact) */}
+        {/* Continue journey */}
         {!stats.complete && stats.nextModule && (
-          <div className="card px-5 py-4 mb-8 flex flex-wrap items-center gap-5">
-            <div className="flex-1 min-w-[220px]">
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="eyebrow">Overall progress</span>
-                <span className="text-sm font-semibold num">{stats.done}/{stats.total} steps · {stats.pct}%</span>
-              </div>
-              <div className="bar">
-                <div className={`bar-fill ${stats.pct === 100 ? "bar-fill-done" : ""}`} style={{ width: `${stats.pct}%` }} />
-              </div>
-            </div>
-            <Link href={`/module/${stats.nextModule.slug}`} className="btn btn-primary shrink-0">
+          <div className="mb-8">
+            <Link href={`/program#${stats.nextModule.slug}`} className="btn btn-primary">
               Continue: {stats.nextModule.title} →
             </Link>
           </div>

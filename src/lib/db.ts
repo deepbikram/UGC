@@ -8,17 +8,26 @@ types.setTypeParser(1184, (v) => (v === null ? null : new Date(v).toISOString())
 types.setTypeParser(1114, (v) => (v === null ? null : new Date(`${v}Z`).toISOString()));
 types.setTypeParser(1082, (v) => v);
 
-const globalForDb = globalThis as unknown as { porticoPool?: Pool };
+const globalForDb = globalThis as unknown as { porticoPool?: Pool; porticoWarmed?: boolean };
 
 function pool(): Pool {
   if (!globalForDb.porticoPool) {
     globalForDb.porticoPool = new Pool({
       connectionString: process.env.SUPABASE_DB_URL!,
       ssl: { rejectUnauthorized: false },
-      max: 5,
+      max: 20,
+      idleTimeoutMillis: 30_000,
     });
   }
   return globalForDb.porticoPool;
+}
+
+// ponytail: pre-open connections at boot so the first request after idle
+// isn't paying 3x TLS handshakes to Supabase in series
+if (!globalForDb.porticoWarmed) {
+  globalForDb.porticoWarmed = true;
+  const p = pool();
+  Promise.all([p.query("SELECT 1"), p.query("SELECT 1"), p.query("SELECT 1")]).catch(() => {});
 }
 
 function toPg(sql: string) {

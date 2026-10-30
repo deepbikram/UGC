@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { completedSteps, unreadFor } from "@/lib/clients";
+import { portalData } from "@/lib/clients";
 import { all, type FileRow } from "@/lib/db";
 import PortalShell from "@/components/PortalShell";
 import FilesView from "@/components/FilesView";
@@ -13,15 +13,16 @@ export default async function FilesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = await getSettings();
-  // Your own uploads plus everything the admin shared — admin content is
-  // visible to every creator, so it is not scoped to one user.
-  const rows = (
-    await all<FileRow>(
+  // ponytail: shell (user+steps+unread) + files in 2 trips, settings cached
+  const [shell, fileRows] = await Promise.all([
+    portalData(session.userId),
+    all<FileRow>(
       "SELECT * FROM files WHERE user_id = ? OR uploader_role = 'admin' ORDER BY created_at DESC",
       [session.userId]
-    )
-  ).map((f) => ({
+    ),
+  ]);
+  const s = await getSettings();
+  const rows = fileRows.map((f) => ({
     id: f.id,
     name: f.file_name,
     size: f.size,
@@ -38,8 +39,8 @@ export default async function FilesPage() {
       name={session.name || session.email}
       role={session.role}
       portalName={s.portal_name}
-      completedSteps={await completedSteps(session.userId)}
-      unread={await unreadFor(session.userId, "client")}
+      completedSteps={shell.done}
+      unread={shell.unread}
     >
       <FilesView initial={rows} portalName={s.portal_name} />
     </PortalShell>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { JOURNEY, isModuleUnlocked, journeyStats } from "@/lib/journey";
+import { journeyStats } from "@/lib/journey";
 import { initials } from "@/lib/format";
 import Logo from "./Logo";
 
@@ -12,29 +12,6 @@ function CheckCircle() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="shrink-0">
       <circle cx="12" cy="12" r="10" stroke="var(--accent)" strokeWidth="1.5" />
       <path d="M7.8 12.2l2.8 2.8 5.6-6" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ProgressRing({ number, pct }: { number: number; pct: number }) {
-  const r = 10;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" className="shrink-0 -rotate-90">
-      <circle cx="12" cy="12" r={r} stroke="#302f2c" strokeWidth="2" fill="none" />
-      <circle cx="12" cy="12" r={r} stroke="var(--accent)" strokeWidth="2" fill="none" strokeLinecap="round" strokeDasharray={`${(pct / 100) * c} ${c}`} />
-      <text x="12" y="12" textAnchor="middle" dominantBaseline="central" fill="#8d8b85" fontSize="9.5" fontWeight="600" transform="rotate(90 12 12)">
-        {number}
-      </text>
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3f3e3a" strokeWidth="1.5" className="shrink-0">
-      <rect x="6" y="10.5" width="12" height="8.5" rx="2" />
-      <path d="M8.5 10.5V8.2a3.5 3.5 0 117 0v2.3" />
     </svg>
   );
 }
@@ -111,6 +88,7 @@ export default function PortalShell({
     return (
       <Link
         href={item.href}
+        prefetch
         className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${active ? "bg-[var(--panel-hi)]" : "hover:bg-[var(--panel-2)]"}`}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? "var(--accent)" : "#8d8b85"} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -131,55 +109,38 @@ export default function PortalShell({
   const nav =
     view === "client" ? (
       <>
-        <div className="px-6 pb-6">
-          <div className="flex items-baseline justify-between mb-2">
-            <span className="eyebrow">Progress</span>
-            <span className="text-xs font-semibold text-neutral-300 num">
-              {stats.done}/{stats.total} · {stats.pct}%
-            </span>
-          </div>
-          <div className="bar bar-thin">
-            <div className={`bar-fill ${stats.pct === 100 ? "bar-fill-done" : ""}`} style={{ width: `${stats.pct}%` }} />
-          </div>
-        </div>
         <nav className="flex-1 overflow-y-auto px-3 pb-4">
-          <div className="space-y-0.5 mb-5">
+          <div className="space-y-0.5 mb-5 mt-6">
             <IconLink item={{ href: "/", label: "Overview", match: (p) => p === "/", icon: ICONS.home }} />
           </div>
 
           <p className="eyebrow px-3 mb-2.5">Your program</p>
           <div className="space-y-0.5 mb-5">
-            {JOURNEY.map((mod, i) => {
-              const href = `/module/${mod.slug}`;
-              const active = pathname === href;
-              const unlocked = role === "admin" || isModuleUnlocked(i, completed);
-              if (!unlocked) {
-                return (
-                  <div key={mod.slug} className="flex items-center gap-3 px-3 py-2 select-none" title="Finish the module before this one to unlock">
-                    <LockIcon />
-                    <span className="text-[14px] text-[#403f3b] truncate">{mod.title}</span>
-                  </div>
-                );
-              }
-              const done = mod.steps.filter((s) => completed.has(s.id)).length;
-              const total = mod.steps.length;
-              const isComplete = total > 0 && done === total;
-              const pct = total ? Math.round((done / total) * 100) : 0;
+            {(() => {
+              const href = "/program";
+              const active = pathname === href || pathname.startsWith("/module/");
+              const isComplete = stats.done === stats.total && stats.total > 0;
               return (
                 <Link
-                  key={mod.slug}
+                  key={href}
                   href={href}
+                  prefetch
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${active ? "bg-[var(--panel-hi)]" : "hover:bg-[var(--panel-2)]"}`}
                 >
-                  {isComplete ? <CheckCircle /> : <ProgressRing number={i + 1} pct={pct} />}
+                  {isComplete ? (
+                    <CheckCircle />
+                  ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8d8b85" strokeWidth="1.5" className="shrink-0">
+                      <circle cx="12" cy="12" r="9" />
+                    </svg>
+                  )}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[14px] leading-tight truncate ${active ? "text-white font-semibold" : "font-medium text-neutral-200"}`}>{mod.title}</p>
-                    {!isComplete && done > 0 && <p className="text-[11px] text-[var(--muted)] mt-0.5 num">{done}/{total} steps</p>}
+                    <p className={`text-[14px] leading-tight truncate ${active ? "text-white font-semibold" : "font-medium text-neutral-200"}`}>Program guide</p>
                   </div>
                   {active && <span className="w-1 h-4 rounded-full shrink-0" style={{ background: "var(--accent)", boxShadow: "0 0 10px var(--accent-glow)" }} />}
                 </Link>
               );
-            })}
+            })()}
           </div>
 
           <p className="eyebrow px-3 mb-2.5">Program</p>
@@ -280,7 +241,7 @@ export default function PortalShell({
         <Link href={view === "admin" ? "/admin" : "/"}>
           <Logo size={22} name="Creator Partnership" />
         </Link>
-        {view === "client" ? <span className="text-xs font-semibold text-neutral-300 num">{stats.pct}%</span> : <span className="w-9" />}
+        {view === "client" ? <span className="w-9" /> : <span className="w-9" />}
       </header>
 
       {drawerOpen && (

@@ -83,6 +83,43 @@ export async function unreadFor(userId: number, role: "admin" | "client"): Promi
   return row?.n ?? 0;
 }
 
+/**
+ * ponytail: sidebar + header need user, steps, and unread on EVERY page.
+ * One round-trip instead of three.
+ */
+export type PortalData = { user: User | undefined; done: string[]; unread: number };
+export async function portalData(userId: number): Promise<PortalData> {
+  const row = await get<{ user: User | null; steps: string[] | null; unread: string | number }>(
+    `SELECT
+      (SELECT row_to_json(u) FROM users u WHERE u.id = ?) AS "user",
+      (SELECT COALESCE(json_agg(step_id), '[]'::json) FROM progress WHERE user_id = ?) AS steps,
+      (SELECT COUNT(*) FROM messages WHERE user_id = ? AND author_role = 'admin' AND read_by_client = false) AS unread`,
+    [userId, userId, userId]
+  );
+  return {
+    user: row?.user ?? undefined,
+    done: (row?.steps ?? []).filter((id) => ALL_STEP_IDS.has(id)),
+    unread: Number(row?.unread ?? 0),
+  };
+}
+
+/** All of a user's form answers in one trip (module pages need several). */
+export async function allFormResponses(userId: number): Promise<Map<string, { data: Record<string, unknown>; status: string; updatedAt: string }>> {
+  const rows = await all<{ form_id: string; data: Record<string, unknown> | string; status: string; updated_at: string }>(
+    "SELECT form_id, data, status, updated_at FROM form_responses WHERE user_id = ?",
+    [userId]
+  );
+  const out = new Map<string, { data: Record<string, unknown>; status: string; updatedAt: string }>();
+  for (const r of rows) {
+    let data: Record<string, unknown> = {};
+    if (typeof r.data === "string") {
+      try { data = JSON.parse(r.data); } catch { data = {}; }
+    } else data = r.data ?? {};
+    out.set(r.form_id, { data, status: r.status, updatedAt: r.updated_at });
+  }
+  return out;
+}
+
 export async function notes(userId: number): Promise<Note[]> {
   return all<Note>("SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC", [userId]);
 }

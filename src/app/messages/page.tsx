@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { completedSteps, messages } from "@/lib/clients";
+import { messages, portalData } from "@/lib/clients";
 import PortalShell from "@/components/PortalShell";
 import Thread from "@/components/Thread";
 
@@ -12,14 +12,18 @@ export default async function MessagesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const s = await getSettings();
-  const thread = await messages(session.userId);
+  // ponytail: 2 trips (shell + thread), settings cached
+  const [shell, s, thread] = await Promise.all([
+    portalData(session.userId),
+    getSettings(),
+    messages(session.userId),
+  ]);
 
   const whatsappHref = toWhatsAppHref(s.support_whatsapp || "https://wa.link/zthuqj");
   const emailHref = s.support_email ? `mailto:${s.support_email}` : "";
 
   return (
-    <PortalShell name={session.name || session.email} role={session.role} portalName={s.portal_name} completedSteps={await completedSteps(session.userId)} unread={0}>
+    <PortalShell name={session.name || session.email} role={session.role} portalName={s.portal_name} completedSteps={shell.done} unread={0}>
       <div className="max-w-3xl mx-auto fade-up">
         <p className="eyebrow mb-3">Contact us</p>
         <h1 className="text-[2rem] lg:text-[2.4rem] font-bold mb-2 title-grad">Talk to the team</h1>

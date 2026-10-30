@@ -163,3 +163,17 @@ reviewed eligible views at your confirmed rate count toward payouts.
 export function renderDoc(body: string, vars: { portal: string; email: string }): string {
   return body.replaceAll("{{portal}}", vars.portal).replaceAll("{{email}}", vars.email);
 }
+
+// ponytail: markdown never changes at runtime — parse once, substitute vars per request
+import { marked } from "marked";
+const htmlCache = new Map<string, string>();
+export async function renderDocHtml(id: string, vars: { portal: string; email: string }): Promise<string> {
+  let html = htmlCache.get(id);
+  if (!html) {
+    const doc = DOCS[id];
+    if (!doc) return "";
+    html = await marked.parse(doc.body);
+    htmlCache.set(id, html);
+  }
+  return html.replaceAll("{{portal}}", vars.portal).replaceAll("{{email}}", vars.email);
+}
